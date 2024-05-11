@@ -17,6 +17,7 @@ import {
   matchFont,
 } from "@shopify/react-native-skia";
 import { useSharedValue } from "react-native-reanimated";
+import { polar2Canvas } from "react-native-redash";
 
 const fontFamily = Platform.select({ ios: "Helvetica", default: "serif" });
 const fontStyle = {
@@ -96,8 +97,40 @@ const Main = () => {
 
   const gesture = Gesture.Pan()
     .onChange(({ translationX, translationY }) => {
-      positionX.value = translationX + middleX;
-      positionY.value = translationY + middleY;
+      const oldCanvasX = translationX + middleX;
+      const oldCanvasY = translationY + middleY;
+
+      const center = screenWidth / 2;
+
+      const xPrime = oldCanvasX - center;
+      const yPrime = -(oldCanvasY - center);
+      const rawTheta = Math.atan2(yPrime, xPrime);
+
+      const newCoords = polar2Canvas(
+        {
+          theta: rawTheta,
+          radius: screenWidth / 2 - 50,
+        },
+        {
+          x: center,
+          y: center,
+        }
+      );
+
+      positionX.value = oldCanvasX;
+      positionY.value = oldCanvasY;
+
+      if (oldCanvasX >= newCoords.x && oldCanvasX >= center) {
+        positionX.value = newCoords.x;
+      } else if (oldCanvasX <= newCoords.x && oldCanvasX <= center) {
+        positionX.value = newCoords.x;
+      }
+
+      if (oldCanvasY >= newCoords.y && oldCanvasY >= center) {
+        positionY.value = newCoords.y;
+      } else if (oldCanvasY <= newCoords.y && oldCanvasY <= center) {
+        positionY.value = newCoords.y;
+      }
 
       const distances = [];
 
@@ -126,7 +159,13 @@ const Main = () => {
     <GestureDetector gesture={gesture}>
       <View style={styles.container}>
         <Canvas style={styles.canvas}>
-          <Path path={path} color={"black"} />
+          {/* <Path path={path} color={"black"} /> */}
+          <Circle
+            cx={screenWidth / 2}
+            cy={screenHeight / 2}
+            r={125}
+            color={"black"}
+          />
           <Circle cx={positionX} cy={positionY} r={40} color={"red"} />
           <Text
             x={middleX - 20}
