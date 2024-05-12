@@ -7,9 +7,17 @@ import {
 import React from "react";
 import { Dimensions, Platform, StyleSheet, View } from "react-native";
 
-import { Canvas, Circle, Skia, matchFont } from "@shopify/react-native-skia";
-import { useSharedValue } from "react-native-reanimated";
+import {
+  Canvas,
+  Circle,
+  Skia,
+  useFont,
+  Text,
+} from "@shopify/react-native-skia";
+import { useDerivedValue, useSharedValue } from "react-native-reanimated";
 import { polar2Canvas } from "react-native-redash";
+
+const fontAsset = require("./assets/pressstart.ttf");
 
 const { height: fullHeight, width: fullWidth } = Dimensions.get("screen");
 
@@ -92,6 +100,7 @@ const Main = () => {
   const innerPoints = createPoints();
   const outerPoints = createOuterPoints();
   const path = Skia.Path.Make();
+  const font = useFont(fontAsset, 30);
   const upOpacity = useSharedValue(0.4);
   const forwardOpacity = useSharedValue(0.4);
   const downOpacity = useSharedValue(0.4);
@@ -101,17 +110,24 @@ const Main = () => {
   const downBackOpacity = useSharedValue(0.4);
   const upBackOpacity = useSharedValue(0.4);
 
-  path.moveTo(innerPoints[0].outerX, innerPoints[0].outerY);
-  for (let i = 1; i < innerPoints.length; i++) {
-    path.lineTo(innerPoints[i].outerX, innerPoints[i].outerY);
-  }
-
   const middleX = screenWidth / 2;
   const middleY = screenHeight / 2;
 
   const positionX = useSharedValue(middleX);
   const positionY = useSharedValue(middleY);
   const readablePosition = useSharedValue("NEUTRAL");
+
+  const textXPosition = useDerivedValue(() => {
+    if (!font) {
+      return 0;
+    }
+    return fullWidth / 2 - font.measureText(readablePosition.value).width / 2;
+  }, [readablePosition, font]);
+
+  path.moveTo(innerPoints[0].outerX, innerPoints[0].outerY);
+  for (let i = 1; i < innerPoints.length; i++) {
+    path.lineTo(innerPoints[i].outerX, innerPoints[i].outerY);
+  }
 
   const gesture = Gesture.Pan()
     .onChange(({ translationX, translationY }) => {
@@ -244,13 +260,6 @@ const Main = () => {
             color={"black"}
           />
           <Circle cx={positionX} cy={positionY} r={40} color={"red"} />
-          {/* <Text
-            x={middleX - 20}
-            y={screenHeight}
-            text={readablePosition}
-            font={font}
-            color={"black"}
-          /> */}
         </Canvas>
         <View
           style={{
@@ -344,6 +353,14 @@ const Main = () => {
                 );
               }
             })}
+
+            <Text
+              x={textXPosition}
+              y={175}
+              text={readablePosition}
+              font={font}
+              color={"black"}
+            />
           </Canvas>
         </View>
       </View>
